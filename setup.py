@@ -6,6 +6,7 @@ required = [
     # Please keep alphabetized
     'numpy',
     'dowel==0.0.2',
+    'pyprind',
     'torch==1.1.0',
     'torchvision==0.3.0',
 ]

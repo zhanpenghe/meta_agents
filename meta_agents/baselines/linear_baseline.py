@@ -1,6 +1,6 @@
-from meta_policy_search.baselines.base import Baseline
-from meta_policy_search.utils.serializable import Serializable
 import numpy as np
+
+from meta_agents.baselines.base import Baseline
 
 
 class LinearBaseline(Baseline):
@@ -124,4 +124,3 @@ class LinearTimeBaseline(LinearBaseline):
         time_step = np.arange(path_length).reshape(-1, 1) / 100.0
         return np.concatenate([time_step, time_step ** 2, time_step ** 3, np.ones((path_length, 1))],
                               axis=1)
-

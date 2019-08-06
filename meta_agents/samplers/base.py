@@ -1,8 +1,10 @@
-from meta_policy_search.utils import utils, logger
 import numpy as np
+from dowel import logger
+
+from meta_agents.utils import utils
 
 
-class Sampler(object):
+class Sampler:
     """
     Sampler interface
 

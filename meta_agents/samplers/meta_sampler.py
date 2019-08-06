@@ -1,8 +1,9 @@
-from meta_policy_search.samplers.base import Sampler
-from meta_policy_search.samplers.vectorized_env_executor import MetaParallelEnvExecutor, MetaIterativeEnvExecutor
-from meta_policy_search.utils import utils, logger
+from meta_agents.samplers.base import Sampler
+from meta_agents.samplers.vectorized_env_executor import MetaParallelEnvExecutor, MetaIterativeEnvExecutor
+from meta_agents.utils import utils
 from collections import OrderedDict
 
+from dowel import logger
 from pyprind import ProgBar
 import numpy as np
 import time
@@ -14,8 +15,8 @@ class MetaSampler(Sampler):
     Sampler for Meta-RL
 
     Args:
-        env (meta_policy_search.envs.base.MetaEnv) : environment object
-        policy (meta_policy_search.policies.base.Policy) : policy object
+        env (meta_agents.envs.base.MetaEnv) : environment object
+        policy (meta_agents.policies.base.Policy) : policy object
         batch_size (int) : number of trajectories per task
         meta_batch_size (int) : number of meta tasks
         max_path_length (int) : max number of steps per trajectory

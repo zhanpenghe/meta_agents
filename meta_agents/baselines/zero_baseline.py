@@ -1,5 +1,6 @@
-from meta_policy_search.baselines.base import Baseline
 import numpy as np
+
+from meta_agents.baselines.base import Baseline
 
 
 class ZeroBaseline(Baseline):

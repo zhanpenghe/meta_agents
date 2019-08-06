@@ -1,7 +1,9 @@
-from meta_policy_search.samplers.base import SampleProcessor
-from meta_policy_search.samplers.dice_sample_processor import DiceSampleProcessor
-from meta_policy_search.utils import utils
 import numpy as np
+
+from meta_agents.samplers.base import SampleProcessor
+from meta_agents.samplers.dice_sample_processor import DiceSampleProcessor
+from meta_agents.utils import utils
+
 
 class MetaSampleProcessor(SampleProcessor):
 
