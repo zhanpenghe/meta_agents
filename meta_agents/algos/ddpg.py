@@ -6,7 +6,7 @@ from dowel import logger, tabular
 import numpy as np
 import torch
 
-from meta_agents.np.algos.off_policy_rl_algorithm import OffPolicyRLAlgorithm
+from meta_agents.algos.off_policy_rl_algorithm import OffPolicyRLAlgorithm
 from meta_agents.utils import np_to_torch, torch_to_np
 
 
