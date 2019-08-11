@@ -24,6 +24,9 @@ extras['dev'] = [
 
 setup(
     name='meta_agents',
+    author="Zhanpeng He",
+    author_email="zhanpeng.he@columbia.edu",
+    url='https://github.com/zhanpenghe/meta_agents.git',
     packages=find_packages(),
     install_requires=required,
     extras_require=extras,
