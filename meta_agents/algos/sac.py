@@ -9,11 +9,6 @@ import torch
 from meta_agents.utils import np_to_torch, torch_to_np
 
 
-def clone_qf(qf):
-    # TODO add qfunction cloning
-    return qf
-
-
 class SAC:
     def __init__(self,
                  env_spec,
@@ -36,7 +31,7 @@ class SAC:
         # Q-functions and target q-functions
         self._qfs = qfs
         self._n_qfs = len(self._qfs)
-        self._target_qfs = [clone_qf(qf) for qf in self._qfs]
+        self._target_qfs = [copy.deepcopy(qf) for qf in self._qfs]
 
         self._discount = discount
         self._reward_scale = reward_scale

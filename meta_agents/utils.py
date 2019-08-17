@@ -2,7 +2,7 @@
 import torch
 
 
-def np_to_torch(self, dict):
+def np_to_torch(array_dict):
     """
     Convert numpy arrays to PyTorch tensors.
 
@@ -13,11 +13,12 @@ def np_to_torch(self, dict):
        Dictionary of data in PyTorch tensors.
 
     """
-    for key, value in dict.items():
-        dict[key] = torch.FloatTensor(value)
-    return dict
+    for key, value in array_dict.items():
+        array_dict[key] = torch.FloatTensor(value)
+    return array_dict
 
-def torch_to_np(self, value_in):
+
+def torch_to_np(value_in):
     """
     Convert PyTorch tensors to numpy arrays.
 

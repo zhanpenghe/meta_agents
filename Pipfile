@@ -6,6 +6,7 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+# TODO add gym to pipfile for development
 meta-agents = {path = "."}
 
 [requires]
