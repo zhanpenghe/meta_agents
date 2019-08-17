@@ -6,10 +6,11 @@ from dowel import logger, tabular
 import numpy as np
 import torch
 
-from meta_agents.utils import np_to_torch, torch_to_np
+from meta_agents.algos.off_policy_rl_algorithm import OffPolicyRLAlgorithm
+from meta_agents.torch_utils import np_to_torch, torch_to_np
 
 
-class SAC:
+class SAC(OffPolicyRLAlgorithm):
     def __init__(self,
                  env_spec,
                  policy,
@@ -25,8 +26,15 @@ class SAC:
                  use_automatic_entropy_tuning=True,
                  target_entropy=None,
                  log_alpha=1.):
+
+        super().__init__(
+            env_spec=env_spec,
+            policy=policy,
+            qf=qfs,
+            replay_buffer=None,
+        )
         self._env_spec = env_spec
-        self._policy = policy
+        self.policy = policy
 
         # Q-functions and target q-functions
         self._qfs = qfs
@@ -37,7 +45,7 @@ class SAC:
         self._reward_scale = reward_scale
         self._qf_lr = qf_lr
 
-        self._policy_optimizer = policy_optimizer_cls(
+        self.policy_optimizer = policy_optimizer_cls(
             self.policy.parameters(),
             lr=policy_lr,
         )
@@ -68,6 +76,9 @@ class SAC:
             # TODO check this
             self.log_alpha = log_alpha
 
+    def train_once(self, itr, paths):
+        return self.optimize_policy(itr, paths)
+
     def optimize_policy(self, itr, samples):
         transitions = np_to_torch(samples)
         observations = transitions['observation']
@@ -86,7 +97,7 @@ class SAC:
             target_qvals = self.target_qf(next_inputs, next_actions)
 
         # Policy loss
-        policy_dist = self._policy(observations)
+        policy_dist = self.policy(observations)
         new_actions = policy_dist.rsample()
         log_pi = policy_dist.log_likelihood(new_actions)
 
@@ -111,7 +122,7 @@ class SAC:
         # Q-functions loss
         q_preds = [qf([obs, actions]) for qf in self._qfs]
         # We need a new set of symbolics!
-        new_policy_dist = self._policy(next_observations)
+        new_policy_dist = self.policy(next_observations)
         new_next_actions = policy_dist.rsample()
         next_log_pi = policy_dist.log_likelihood(new_next_actions)
 

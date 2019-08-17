@@ -1,5 +1,5 @@
-from meta_agents.algos import RLAlgorithm
-from meta_agents.samplers import OffPolicyVectorizedSampler
+from meta_agents.algos.base import RLAlgorithm
+from meta_agents.samplers import Sampler
 
 
 class OffPolicyRLAlgorithm(RLAlgorithm):
@@ -64,9 +64,7 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
         self.max_path_length = max_path_length
         self.es = exploration_strategy
 
-        self.sampler_cls = OffPolicyVectorizedSampler
-
-        self.init_opt()
+        self.sampler_cls = Sampler
 
     def train(self, runner, batch_size):
         last_return = None
@@ -114,15 +112,6 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
             complete=complete)
 
         return samples_data
-
-    def init_opt(self):
-        """
-        Initialize the optimization procedure.
-
-        If using tensorflow, this may
-        include declaring all the variables and compiling functions.
-        """
-        raise NotImplementedError
 
     def get_itr_snapshot(self, itr, samples_data):
         """Return data saved in the snapshot for this iteration."""

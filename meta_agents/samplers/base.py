@@ -10,12 +10,12 @@ class Sampler:
 
     Args:
         env (gym.Env) : environment object
-        policy (meta_policy_search.policies.policy) : policy object
+        policy (meta_agents.policies.policy) : policy object
         batch_size (int) : number of trajectories per task
         max_path_length (int) : max number of steps per trajectory
     """
 
-    def __init__(self, env, policy, batch_size, max_path_length):
+    def __init__(self, env, policy, batch_size=2000, max_path_length=100):
         assert hasattr(env, 'reset') and hasattr(env, 'step')
 
         self.env = env
@@ -31,6 +31,12 @@ class Sampler:
             (list) : A list of paths.
         """
         raise NotImplementedError
+
+    def start_worker(self):
+        pass
+
+    def shutdown_worker(self):
+        pass
 
 
 class SampleProcessor(object):

@@ -1,7 +1,7 @@
 import numpy as np
 from dowel import logger
 
-from meta_agents.utils import utils, logger
+from meta_agents.utils import utils
 from meta_agents.samplers.base import SampleProcessor
 
 

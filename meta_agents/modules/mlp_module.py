@@ -46,7 +46,7 @@ class MLPModule(nn.Module):
     def __init__(self,
                  input_dim,
                  output_dim,
-                 hidden_sizes,
+                 hidden_sizes=(32, 32),
                  hidden_nonlinearity=F.relu,
                  hidden_w_init=nn.init.xavier_normal_,
                  hidden_b_init=nn.init.zeros_,

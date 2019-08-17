@@ -85,7 +85,7 @@ class LocalRunner:
             sampler_args = {}
         if sampler_cls is None:
             sampler_cls = algo.sampler_cls
-        self.sampler = sampler_cls(algo, env, **sampler_args)
+        self.sampler = sampler_cls(policy=self.policy, env=env, **sampler_args)
 
         self.has_setup = True
 
@@ -328,3 +328,9 @@ class LocalRunner:
             self.train_args.pause_for_plot = pause_for_plot
 
         return self.algo.train(self, batch_size)
+
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass

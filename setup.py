@@ -5,6 +5,7 @@ from setuptools import find_packages, setup
 required = [
     # Please keep alphabetized
     'akro==0.0.6',
+    'joblib<0.13,>=0.12',
     'numpy',
     'dowel==0.0.2',
     'pyprind',

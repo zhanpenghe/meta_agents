@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from meta_agents.algos.off_policy_rl_algorithm import OffPolicyRLAlgorithm
-from meta_agents.utils import np_to_torch, torch_to_np
+from meta_agents.torch_utils import np_to_torch, torch_to_np
 
 
 class DDPG(OffPolicyRLAlgorithm):
