@@ -4,6 +4,7 @@ from setuptools import find_packages, setup
 # Required dependencies
 required = [
     # Please keep alphabetized
+    'akro==0.0.6',
     'numpy',
     'dowel==0.0.2',
     'pyprind',

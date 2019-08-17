@@ -18,8 +18,7 @@ class Policy(abc.ABC):
 
     def get_action(self, observation):
         """Get action given observation."""
-        return np.squeeze(
-            self.get_actions(np.expand_dims(observation, axis=0)))
+        pass
 
     @abc.abstractmethod
     def get_actions(self, observations):

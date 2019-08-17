@@ -9,7 +9,7 @@ from meta_agents.modules.mlp_module import MLPModule
 from meta_agents.modules.multi_headed_mlp_module import MultiHeadedMLPModule
 
 
-class GaussianMLPBaseModule(abc.ABC, nn.Module):
+class GaussianMLPBaseModule(nn.Module, abc.ABC):
     """
     GaussianMLPModel.
 
@@ -88,7 +88,7 @@ class GaussianMLPBaseModule(abc.ABC, nn.Module):
                  std_output_w_init=nn.init.xavier_uniform_,
                  std_parameterization='exp',
                  layer_normalization=False):
-        super(GaussianMLPBaseModule, self).__init__()
+        super().__init__()
 
         self._input_dim = input_dim
         self._hidden_sizes = hidden_sizes
