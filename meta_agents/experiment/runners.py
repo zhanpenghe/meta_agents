@@ -85,7 +85,8 @@ class LocalRunner:
             sampler_args = {}
         if sampler_cls is None:
             sampler_cls = algo.sampler_cls
-        self.sampler = sampler_cls(policy=self.policy, env=env, **sampler_args)
+        print(sampler_cls, sampler_args)
+        self.sampler = sampler_cls(env, self.policy, **sampler_args)
 
         self.has_setup = True
 
@@ -120,7 +121,8 @@ class LocalRunner:
         """
         if self.train_args.n_epoch_cycles == 1:
             logger.log('Obtaining samples...')
-        return self.sampler.obtain_samples(itr, batch_size)
+        # TODO refactor logging for the sampler to turn this back on
+        return self.sampler.obtain_samples(itr, log=False)
 
     def save(self, epoch, paths=None):
         """Save snapshot of current batch.

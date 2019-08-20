@@ -11,6 +11,9 @@ from meta_agents.torch_utils import np_to_torch, torch_to_np
 
 
 class SAC(OffPolicyRLAlgorithm):
+    '''
+    Soft Actor-Critic
+    '''
     def __init__(self,
                  env_spec,
                  policy,
@@ -80,6 +83,8 @@ class SAC(OffPolicyRLAlgorithm):
         return self.optimize_policy(itr, paths)
 
     def optimize_policy(self, itr, samples):
+        # TODO add preprocess
+
         transitions = np_to_torch(samples)
         observations = transitions['observation']
         rewards = transitions['reward']

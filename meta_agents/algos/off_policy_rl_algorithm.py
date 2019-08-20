@@ -1,5 +1,5 @@
 from meta_agents.algos.base import RLAlgorithm
-from meta_agents.samplers import Sampler
+from meta_agents.samplers import SingleTaskSampler
 
 
 class OffPolicyRLAlgorithm(RLAlgorithm):
@@ -64,7 +64,7 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
         self.max_path_length = max_path_length
         self.es = exploration_strategy
 
-        self.sampler_cls = Sampler
+        self.sampler_cls = SingleTaskSampler
 
     def train(self, runner, batch_size):
         last_return = None

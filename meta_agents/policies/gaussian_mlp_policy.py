@@ -1,8 +1,10 @@
 """GaussianMLPPolicy."""
-from torch import nn
+import numpy as np
+import torch
 
 from meta_agents.modules import GaussianMLPModule
 from meta_agents.policies import Policy
+from meta_agents.torch_utils import np_to_torch
 
 
 class GaussianMLPPolicy(GaussianMLPModule, Policy):
@@ -32,9 +34,29 @@ class GaussianMLPPolicy(GaussianMLPModule, Policy):
 
     def get_actions(self, observations):
         """Get actions given observations."""
+        meta = False
+        # This method now handles both the meta case
+        # and the single task case.
+        if isinstance(observations, list):
+            meta = True
+            meta_batch_size = len(observations)
+            observations = np.concatenate(observations)
+            assert len(observations.shape) == 2 and\
+                observations.shape[1] == self._env_spec.observation_space.flat_dim
+        # numpy to torch
+        observations = torch.Tensor(observations)
         with torch.no_grad():
             dist = self.forward(observations)
-            return dist.rsample().detach().numpy(), dict()
+            actions = dist.rsample().detach().numpy()
+
+        infos = dict()
+        if meta:
+            actions = np.split(actions, meta_batch_size, axis=0)
+            infos = [
+                [dict()] * actions[t].shape[0]
+                for t in range(len(actions))
+            ]
+        return actions, infos
 
     def get_action(self, observation):
         with torch.no_grad():

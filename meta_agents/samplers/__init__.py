@@ -2,5 +2,6 @@ from meta_agents.samplers.base import Sampler
 from meta_agents.samplers.base import SampleProcessor
 from meta_agents.samplers.meta_sample_processor import MetaSampleProcessor
 from meta_agents.samplers.meta_sampler import MetaSampler
+from meta_agents.samplers.single_task_sampler import SingleTaskSampler
 from meta_agents.samplers.dice_sample_processor import DiceSampleProcessor
 from meta_agents.samplers.meta_sample_processor import DiceMetaSampleProcessor

@@ -15,13 +15,11 @@ class Sampler:
         max_path_length (int) : max number of steps per trajectory
     """
 
-    def __init__(self, env, policy, batch_size=2000, max_path_length=100):
-        assert hasattr(env, 'reset') and hasattr(env, 'step')
+    def __init__(self, env, policy):
 
+        assert hasattr(env, 'reset') and hasattr(env, 'step')
         self.env = env
         self.policy = policy
-        self.batch_size = batch_size
-        self.max_path_length = max_path_length
 
     def obtain_samples(self):
         """
@@ -32,6 +30,10 @@ class Sampler:
         """
         raise NotImplementedError
 
+    '''
+    These are required for using garage local runners.
+    TODO: Consider removing them from runners
+    '''
     def start_worker(self):
         pass
 
@@ -39,7 +41,7 @@ class Sampler:
         pass
 
 
-class SampleProcessor(object):
+class SampleProcessor:
     """
     Sample processor interface
         - fits a reward baseline (use zero baseline to skip this step)

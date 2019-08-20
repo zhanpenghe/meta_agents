@@ -33,9 +33,13 @@ class MetaSampler(Sampler):
             envs_per_task=None,
             parallel=False
             ):
-        super(MetaSampler, self).__init__(env, policy, rollouts_per_meta_task, max_path_length)
-        assert hasattr(env, 'set_task')
+        super().__init__(env, policy)
+        # Temporarily comment this out since this
+        # sampler handle both single task and multitask
+        # use case.
+        # assert hasattr(env, 'set_task')
 
+        self.max_path_length = max_path_length
         self.envs_per_task = rollouts_per_meta_task if envs_per_task is None else envs_per_task
         self.meta_batch_size = meta_batch_size
         self.total_samples = meta_batch_size * rollouts_per_meta_task * max_path_length
@@ -43,7 +47,6 @@ class MetaSampler(Sampler):
         self.total_timesteps_sampled = 0
 
         # setup vectorized environment
-
         if self.parallel:
             self.vec_env = MetaParallelEnvExecutor(env, self.meta_batch_size, self.envs_per_task, self.max_path_length)
         else:
@@ -57,7 +60,7 @@ class MetaSampler(Sampler):
         assert len(tasks) == self.meta_batch_size
         self.vec_env.set_tasks(tasks)
 
-    def obtain_samples(self, log=False, log_prefix=''):
+    def obtain_samples(self, itr, log=False, log_prefix=''):
         """
         Collect batch_size trajectories from each task
 
@@ -90,6 +93,7 @@ class MetaSampler(Sampler):
             # execute policy
             t = time.time()
             obs_per_task = np.split(np.asarray(obses), self.meta_batch_size)
+
             actions, agent_infos = policy.get_actions(obs_per_task)
             policy_time += time.time() - t
 
