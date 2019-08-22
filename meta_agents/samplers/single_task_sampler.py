@@ -7,7 +7,7 @@ class SingleTaskSampler(MetaSampler):
         self,
         env,
         policy,
-        n_rollouts=1,
+        n_rollouts=10,
         max_path_length=100,
         n_envs=None,
         parallel=False,):

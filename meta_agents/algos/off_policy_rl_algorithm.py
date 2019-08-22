@@ -1,5 +1,6 @@
 from meta_agents.algos.base import RLAlgorithm
 from meta_agents.samplers import SingleTaskSampler
+from meta_agents.samplers.off_policy_processor import OffPolicySampleProcessor 
 
 
 class OffPolicyRLAlgorithm(RLAlgorithm):
@@ -40,7 +41,7 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
                  max_path_length=None,
                  n_train_steps=50,
                  buffer_batch_size=64,
-                 min_buffer_size=int(1e4),
+                 min_buffer_size=int(1e3),
                  rollout_batch_size=1,
                  reward_scale=1.,
                  input_include_goal=False,
@@ -63,6 +64,7 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
         self.smooth_return = smooth_return
         self.max_path_length = max_path_length
         self.es = exploration_strategy
+        self.processor = OffPolicySampleProcessor()
 
         self.sampler_cls = SingleTaskSampler
 
@@ -73,8 +75,24 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
             for cycle in range(self.n_epoch_cycles):
                 runner.step_path = runner.obtain_samples(
                     runner.step_itr, batch_size)
-                last_return = self.train_once(runner.step_itr,
-                                              runner.step_path)
+
+                for p in runner.step_path:
+                    next_obses = p['observations'][1:, ...]
+                    obses = p['observations'][:-1, ...]
+                    actions = p['actions'][:-1, ...]
+                    rewards = p['rewards'][:-1, ...]
+                    dones = p['dones'][:-1, ...]
+                    self.replay_buffer.add_transitions(
+                        observation=obses,
+                        action=actions,
+                        reward=rewards * self.reward_scale,
+                        terminal=dones,
+                        next_observation=next_obses,
+                    )
+
+                if self.replay_buffer.n_transitions_stored >= self.min_buffer_size:
+                    samples_data = self.replay_buffer.sample(self.buffer_batch_size)
+                    last_return = self.train_once(runner.step_itr, samples_data)
                 runner.step_itr += 1
 
         return last_return

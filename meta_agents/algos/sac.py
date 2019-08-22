@@ -18,6 +18,7 @@ class SAC(OffPolicyRLAlgorithm):
                  env_spec,
                  policy,
                  qfs,  # use more than one q-functions to gain more stable performance
+                 replay_buffer,
                  discount=0.99,
                  reward_scale=1.0,
                  policy_lr=1e-3,
@@ -34,10 +35,11 @@ class SAC(OffPolicyRLAlgorithm):
             env_spec=env_spec,
             policy=policy,
             qf=qfs,
-            replay_buffer=None,
+            replay_buffer=replay_buffer,
         )
         self._env_spec = env_spec
         self.policy = policy
+        self.target_policy = copy.deepcopy(policy)
 
         # Q-functions and target q-functions
         self._qfs = qfs
@@ -83,8 +85,6 @@ class SAC(OffPolicyRLAlgorithm):
         return self.optimize_policy(itr, paths)
 
     def optimize_policy(self, itr, samples):
-        # TODO add preprocess
-
         transitions = np_to_torch(samples)
         observations = transitions['observation']
         rewards = transitions['reward']
@@ -98,13 +98,15 @@ class SAC(OffPolicyRLAlgorithm):
         next_inputs = next_observations
         inputs = observations
         with torch.no_grad():
-            next_actions = self.target_policy(next_inputs)
-            target_qvals = self.target_qf(next_inputs, next_actions)
+            next_actions, _ = self.target_policy.get_actions(next_inputs)
+            # TODO: fix target qf
+            target_qvals = self._target_qfs[0](
+                next_inputs, torch.Tensor(next_actions))
 
         # Policy loss
         policy_dist = self.policy(observations)
         new_actions = policy_dist.rsample()
-        log_pi = policy_dist.log_likelihood(new_actions)
+        log_pi = policy_dist.log_prob(new_actions)
 
         # get alpha:
         if self._use_automatic_entropy_tuning:
@@ -119,21 +121,21 @@ class SAC(OffPolicyRLAlgorithm):
         # TODO: extend this to more than two q-functions
         # TODO: check the correctness of the min usage..
         q_new_actions = torch.min(
-            self._qfs[0](obs, new_actions),
-            self._qfs[1](obs, new_actions),
+            self._qfs[0](observations, new_actions),
+            self._qfs[1](observations, new_actions),
         )
         policy_loss = (alpha * log_pi - q_new_actions).mean()
 
         # Q-functions loss
-        q_preds = [qf([obs, actions]) for qf in self._qfs]
+        q_preds = [qf(observations, actions) for qf in self._qfs]
         # We need a new set of symbolics!
         new_policy_dist = self.policy(next_observations)
         new_next_actions = policy_dist.rsample()
-        next_log_pi = policy_dist.log_likelihood(new_next_actions)
+        next_log_pi = policy_dist.log_prob(new_next_actions)
 
         target_q_values = torch.min(
-            self._target_qfs[0](obs, new_next_actions),
-            self._target_qfs[1](obs, new_next_actions),
+            self._target_qfs[0](observations, new_next_actions),
+            self._target_qfs[1](observations, new_next_actions),
         ) - alpha * next_log_pi
 
         q_target = self._reward_scale * rewards + (1. - terminals) * self._discount * target_q_values
@@ -147,6 +149,6 @@ class SAC(OffPolicyRLAlgorithm):
             opt.step()
 
         '''Optimize policy'''
-        self._policy_optimizer.zero_grad()
+        self.policy_optimizer.zero_grad()
         policy_loss.backward()
-        self._policy_optimizer.step()
+        self.policy_optimizer.step()

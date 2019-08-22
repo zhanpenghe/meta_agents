@@ -114,6 +114,7 @@ class MetaSampler(Sampler):
                 running_paths[idx]["observations"].append(observation)
                 running_paths[idx]["actions"].append(action)
                 running_paths[idx]["rewards"].append(reward)
+                running_paths[idx]["dones"].append(int(done))
                 running_paths[idx]["env_infos"].append(env_info)
                 running_paths[idx]["agent_infos"].append(agent_info)
 
@@ -123,6 +124,7 @@ class MetaSampler(Sampler):
                         observations=np.asarray(running_paths[idx]["observations"]),
                         actions=np.asarray(running_paths[idx]["actions"]),
                         rewards=np.asarray(running_paths[idx]["rewards"]),
+                        dones=np.asarray(running_paths[idx]["dones"], dtype=np.float),
                         env_infos=utils.stack_tensor_dict_list(running_paths[idx]["env_infos"]),
                         agent_infos=utils.stack_tensor_dict_list(running_paths[idx]["agent_infos"]),
                     ))
@@ -156,4 +158,4 @@ class MetaSampler(Sampler):
 
 
 def _get_empty_running_paths_dict():
-    return dict(observations=[], actions=[], rewards=[], env_infos=[], agent_infos=[])
+    return dict(observations=[], actions=[], rewards=[], env_infos=[], agent_infos=[], dones=[])

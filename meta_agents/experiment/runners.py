@@ -85,7 +85,6 @@ class LocalRunner:
             sampler_args = {}
         if sampler_cls is None:
             sampler_cls = algo.sampler_cls
-        print(sampler_cls, sampler_args)
         self.sampler = sampler_cls(env, self.policy, **sampler_args)
 
         self.has_setup = True
@@ -145,7 +144,8 @@ class LocalRunner:
 
         # Save states
         params['env'] = self.env
-        params['algo'] = self.algo
+        # TODO: add this back
+        # params['algo'] = self.algo
         if paths:
             params['paths'] = paths
         params['last_epoch'] = epoch
