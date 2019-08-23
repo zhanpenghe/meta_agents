@@ -117,10 +117,12 @@ class LocalRunner:
             One batch of samples.
 
         """
+        show_pbar = False
         if self.train_args.n_epoch_cycles == 1:
             logger.log('Obtaining samples...')
-        # TODO refactor logging for the sampler to turn this back on
-        return self.sampler.obtain_samples(itr, log=False)
+            show_pbar = True
+        # TODO refactor logging to clean up args of obtain_samples
+        return self.sampler.obtain_samples(itr, log=True, show_pbar=show_pbar)
 
     def save(self, epoch, paths=None):
         """Save snapshot of current batch.
@@ -238,6 +240,9 @@ class LocalRunner:
         """
         if not self.has_setup:
             raise Exception('Use setup() to setup runner before training.')
+
+        if hasattr(self.algo, 'n_epoch_cycles'):
+            n_epoch_cycles = self.algo.n_epoch_cycles
 
         # Save arguments for restore
         self.train_args = types.SimpleNamespace(

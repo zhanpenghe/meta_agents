@@ -3,7 +3,7 @@ from meta_agents.samplers.vectorized_env_executor import MetaParallelEnvExecutor
 from meta_agents.utils import utils
 from collections import OrderedDict
 
-from dowel import logger
+from dowel import logger, tabular
 from pyprind import ProgBar
 import numpy as np
 import time
@@ -60,13 +60,14 @@ class MetaSampler(Sampler):
         assert len(tasks) == self.meta_batch_size
         self.vec_env.set_tasks(tasks)
 
-    def obtain_samples(self, itr, log=False, log_prefix=''):
+    def obtain_samples(self, itr, log=False, log_prefix='', show_pbar=True):
         """
         Collect batch_size trajectories from each task
 
         Args:
             log (boolean): whether to log sampling times
             log_prefix (str) : prefix for logger
+            show_pbar (boolean): whether to show progress bar
 
         Returns: 
             (dict) : A dict of paths of size [meta_batch_size] x (batch_size) x [5] x (max_path_length)
@@ -80,7 +81,8 @@ class MetaSampler(Sampler):
         n_samples = 0
         running_paths = [_get_empty_running_paths_dict() for _ in range(self.vec_env.num_envs)]
 
-        pbar = ProgBar(self.total_samples)
+        if show_pbar:
+            pbar = ProgBar(self.total_samples)
         policy_time, env_time = 0, 0
 
         policy = self.policy
@@ -130,16 +132,17 @@ class MetaSampler(Sampler):
                     ))
                     new_samples += len(running_paths[idx]["rewards"])
                     running_paths[idx] = _get_empty_running_paths_dict()
-
-            pbar.update(new_samples)
+            if show_pbar:
+                pbar.update(new_samples)
             n_samples += new_samples
             obses = next_obses
-        pbar.stop()
+        if show_pbar:
+            pbar.stop()
 
         self.total_timesteps_sampled += self.total_samples
         if log:
-            logger.logkv(log_prefix + "PolicyExecTime", policy_time)
-            logger.logkv(log_prefix + "EnvExecTime", env_time)
+            tabular.record(log_prefix + "PolicyExecTime", policy_time)
+            tabular.record(log_prefix + "EnvExecTime", env_time)
 
         return paths
 

@@ -136,15 +136,15 @@ class DiceSampleProcessor(SampleProcessor):
         undiscounted_returns = [sum(path["rewards"]) for path in paths]
 
         if log == 'reward':
-            logger.logkv(log_prefix + 'AverageReturn', np.mean(undiscounted_returns))
+            tabular.record(log_prefix + 'AverageReturn', np.mean(undiscounted_returns))
 
         elif log == 'all' or log is True:
-            logger.logkv(log_prefix + 'AverageDiscountedReturn', np.mean(average_discounted_return))
-            logger.logkv(log_prefix + 'AverageReturn', np.mean(undiscounted_returns))
-            logger.logkv(log_prefix + 'NumTrajs', len(paths))
-            logger.logkv(log_prefix + 'StdReturn', np.std(undiscounted_returns))
-            logger.logkv(log_prefix + 'MaxReturn', np.max(undiscounted_returns))
-            logger.logkv(log_prefix + 'MinReturn', np.min(undiscounted_returns))
+            tabular.record(log_prefix + 'AverageDiscountedReturn', np.mean(average_discounted_return))
+            tabular.record(log_prefix + 'AverageReturn', np.mean(undiscounted_returns))
+            tabular.record(log_prefix + 'NumTrajs', len(paths))
+            tabular.record(log_prefix + 'StdReturn', np.std(undiscounted_returns))
+            tabular.record(log_prefix + 'MaxReturn', np.max(undiscounted_returns))
+            tabular.record(log_prefix + 'MinReturn', np.min(undiscounted_returns))
 
     def _compute_discounted_rewards(self, paths):
         discount_array = np.cumprod(np.concatenate([np.ones(1), np.ones(self.max_path_length - 1) * self.discount]))
