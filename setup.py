@@ -4,10 +4,7 @@ from setuptools import find_packages, setup
 # Required dependencies
 required = [
     # Please keep alphabetized
-    'akro==0.0.6',
-    'joblib<0.13,>=0.12',
-    'numpy',
-    'dowel==0.0.2',
+    'garage @ https://github.com/rlworkgroup/garage/tarball/586c4eddb28422ff879ea153ae4c9e1081f00357',
     'pyprind',
     'torch==1.1.0',
     'torchvision==0.3.0',

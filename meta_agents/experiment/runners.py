@@ -3,8 +3,7 @@ import time
 import types
 
 from dowel import logger, tabular
-
-from meta_agents.experiment.snapshotter import Snapshotter
+from garage.experiment import Snapshotter
 
 
 class LocalRunner:
