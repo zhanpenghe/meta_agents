@@ -87,8 +87,7 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
                         action=actions,
                         reward=rewards * self.reward_scale,
                         terminal=dones,
-                        next_observation=next_obses,
-                    )
+                        next_observation=next_obses,)
 
                 if self.replay_buffer.n_transitions_stored >= self.min_buffer_size:
                     samples_data = self.replay_buffer.sample(self.buffer_batch_size)

@@ -126,3 +126,6 @@ dmypy.json
 
 # Editors and IDE's
 .vscode/
+
+# Created by meta_agents
+data/

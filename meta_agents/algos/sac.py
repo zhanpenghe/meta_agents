@@ -97,11 +97,6 @@ class SAC(OffPolicyRLAlgorithm):
 
         next_inputs = next_observations
         inputs = observations
-        with torch.no_grad():
-            next_actions, _ = self.target_policy.get_actions(next_inputs)
-            # TODO: fix target qf
-            target_qvals = self._target_qfs[0](
-                next_inputs, torch.Tensor(next_actions))
 
         # Policy loss
         policy_dist = self.policy(observations)
