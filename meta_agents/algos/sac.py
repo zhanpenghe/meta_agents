@@ -126,7 +126,7 @@ class SAC(OffPolicyRLAlgorithm):
         # We need a new set of symbolics!
         new_policy_dist = self.policy(next_observations)
         new_next_actions = policy_dist.rsample()
-        next_log_pi = policy_dist.log_prob(new_next_actions)
+        next_log_pi = policy_dist.log_prob(new_next_actions).unsqueeze(-1)
 
         target_q_values = torch.min(
             self._target_qfs[0](observations, new_next_actions),
@@ -135,6 +135,7 @@ class SAC(OffPolicyRLAlgorithm):
 
         q_target = self._reward_scale * rewards + (1. - terminals) * self._discount * target_q_values
         q_target = q_target.detach()
+
         q_losses = [self._qf_criterion(q_pred, q_target) for q_pred in q_preds]
 
         '''Optimize q-functions'''
@@ -143,7 +144,17 @@ class SAC(OffPolicyRLAlgorithm):
             loss.backward()
             opt.step()
 
+        q_losses_np = [l.detach().numpy() for l in q_losses]
+        mean_q_loss = np.mean(q_losses_np, axis=0)
+
         '''Optimize policy'''
         self.policy_optimizer.zero_grad()
         policy_loss.backward()
         self.policy_optimizer.step()
+
+        policy_loss_np = policy_loss.detach().numpy()
+        if len(policy_loss_np.shape) != 0:
+            raise ValueError('The dimension of policy loss is not correct!')
+        else:
+            policy_loss = policy_loss_np[np.newaxis, ...][0]
+        return policy_loss, mean_q_loss

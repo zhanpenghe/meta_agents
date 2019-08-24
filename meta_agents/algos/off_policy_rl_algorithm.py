@@ -1,3 +1,5 @@
+from dowel import tabular
+
 from meta_agents.algos.base import RLAlgorithm
 from meta_agents.samplers import SingleTaskSampler
 from meta_agents.samplers.off_policy_processor import OffPolicySampleProcessor 
@@ -41,7 +43,7 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
                  max_path_length=None,
                  n_train_steps=50,
                  buffer_batch_size=64,
-                 min_buffer_size=int(1e3),
+                 min_buffer_size=int(1e4),
                  rollout_batch_size=1,
                  reward_scale=1.,
                  input_include_goal=False,
@@ -72,28 +74,31 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
         last_return = None
 
         for epoch in runner.step_epochs():
+            policy_loss = None
+            qf_loss = None
             for cycle in range(self.n_epoch_cycles):
                 runner.step_path = runner.obtain_samples(
                     runner.step_itr, batch_size)
 
-                for p in runner.step_path:
-                    next_obses = p['observations'][1:, ...]
-                    obses = p['observations'][:-1, ...]
-                    actions = p['actions'][:-1, ...]
-                    rewards = p['rewards'][:-1, ...]
-                    dones = p['dones'][:-1, ...]
+                processed_paths = self.processor.process_samples(runner.step_path)
+                for p in processed_paths:
                     self.replay_buffer.add_transitions(
-                        observation=obses,
-                        action=actions,
-                        reward=rewards * self.reward_scale,
-                        terminal=dones,
-                        next_observation=next_obses,)
+                        observation=p['observations'],
+                        action=p['actions'],
+                        reward=p['rewards'] * self.reward_scale,
+                        terminal=p['dones'],
+                        next_observation=p['next_observations'],)
 
                 if self.replay_buffer.n_transitions_stored >= self.min_buffer_size:
                     samples_data = self.replay_buffer.sample(self.buffer_batch_size)
-                    last_return = self.train_once(runner.step_itr, samples_data)
+                    policy_loss, qf_loss = self.train_once(runner.step_itr, samples_data)
                 runner.step_itr += 1
 
+            if policy_loss is not None and qf_loss is not None:
+                tabular.record('QfunctionLoss', qf_loss)
+                tabular.record('PolicyLoss', policy_loss)
+
+        # This is currently disabled since last_return is not very useful
         return last_return
 
     def log_diagnostics(self, paths):

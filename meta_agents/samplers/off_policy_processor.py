@@ -9,14 +9,24 @@ class OffPolicySampleProcessor(SampleProcessor):
 
     def process_samples(self, paths):
         '''
-        paths --> batch
-        This method also add a next_observations field to the batch.
-        '''
-        for p in paths:
-            p['next_observation'] = p['observations'][1:, ...]
-            p['observation'] = p['observations'][:-1, ...]
-            p['action'] = p['actions'][:-1, ...]
-            p['reward'] = p['rewards'][:-1, ...]
-            p['done'] = p['dones'][:-1, ...]
+        The replay buffer is weird since its add_transition
+        function actually only cares about episode....
+        So, this sample processor still maintain the notion
+        of episode.
 
-        return stack_tensor_dict_list(paths)
+        TODO rewrite replay buffers to make it right
+
+        '''
+        processed_paths = []
+
+        for p in paths:
+            samples_data = dict(
+                next_observations=p['observations'][1:, ...],
+                observations=p['observations'][:-1, ...],
+                actions=p['actions'][:-1, ...],
+                rewards=p['rewards'][:-1, ...],
+                dones=p['dones'][:-1, ...],)
+            processed_paths.append(samples_data)
+
+        assert len(processed_paths) == len(paths)
+        return processed_paths
