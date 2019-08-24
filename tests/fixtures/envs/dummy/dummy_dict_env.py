@@ -1,7 +1,7 @@
 import gym
+from garage.envs import EnvSpec
 import numpy as np
 
-from meta_agents.envs import EnvSpec
 from tests.fixtures.envs.dummy import DummyEnv
 
 

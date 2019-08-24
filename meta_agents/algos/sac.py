@@ -44,6 +44,8 @@ class SAC(OffPolicyRLAlgorithm):
         # Q-functions and target q-functions
         self._qfs = qfs
         self._n_qfs = len(self._qfs)
+        # TODO: Add support to more than 2 qfunctions
+        assert self._n_qfs == 2, 'Currently, we only support two q functions'
         self._target_qfs = [copy.deepcopy(qf) for qf in self._qfs]
 
         self._discount = discount
