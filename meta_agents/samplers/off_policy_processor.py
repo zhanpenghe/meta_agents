@@ -1,11 +1,11 @@
 from  meta_agents.samplers.base import SampleProcessor
-from meta_agents.utils.utils import stack_tensor_dict_list
+from meta_agents.utils.utils import discount_cumsum, stack_tensor_dict_list
 
 
 class OffPolicySampleProcessor(SampleProcessor):
 
-    def __init__(self):
-        pass
+    def __init__(self, discount=0.99):
+        self.discount = discount
 
     def process_samples(self, paths):
         '''
@@ -17,16 +17,22 @@ class OffPolicySampleProcessor(SampleProcessor):
         TODO rewrite replay buffers to make it right
 
         '''
-        processed_paths = []
+        samples_data, all_paths = self._compute_samples_data(paths)
+        self._log_path_stats(all_paths, log=True)
+        return samples_data
 
+    def _compute_samples_data(self, paths):
+        all_samples_data = []
+        all_paths = []
         for p in paths:
+            p["returns"] = discount_cumsum(p["rewards"], self.discount)
             samples_data = dict(
                 next_observations=p['observations'][1:, ...],
                 observations=p['observations'][:-1, ...],
                 actions=p['actions'][:-1, ...],
                 rewards=p['rewards'][:-1, ...],
                 dones=p['dones'][:-1, ...],)
-            processed_paths.append(samples_data)
+            all_samples_data.append(samples_data)
 
-        assert len(processed_paths) == len(paths)
-        return processed_paths
+        assert len(all_samples_data) == len(paths)
+        return all_samples_data, paths

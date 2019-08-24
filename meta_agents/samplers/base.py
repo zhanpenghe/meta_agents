@@ -1,5 +1,5 @@
 import numpy as np
-from dowel import logger
+from dowel import tabular
 
 from meta_agents.utils import utils
 
@@ -148,15 +148,15 @@ class SampleProcessor:
         undiscounted_returns = [sum(path["rewards"]) for path in paths]
 
         if log == 'reward':
-            logger.logkv(log_prefix + 'AverageReturn', np.mean(undiscounted_returns))
+            tabular.record(log_prefix + 'AverageReturn', np.mean(undiscounted_returns))
 
         elif log == 'all' or log is True:
-            logger.logkv(log_prefix + 'AverageDiscountedReturn', average_discounted_return)
-            logger.logkv(log_prefix + 'AverageReturn', np.mean(undiscounted_returns))
-            logger.logkv(log_prefix + 'NumTrajs', len(paths))
-            logger.logkv(log_prefix + 'StdReturn', np.std(undiscounted_returns))
-            logger.logkv(log_prefix + 'MaxReturn', np.max(undiscounted_returns))
-            logger.logkv(log_prefix + 'MinReturn', np.min(undiscounted_returns))
+            tabular.record(log_prefix + 'AverageDiscountedReturn', average_discounted_return)
+            tabular.record(log_prefix + 'AverageReturn', np.mean(undiscounted_returns))
+            tabular.record(log_prefix + 'NumTrajs', len(paths))
+            tabular.record(log_prefix + 'StdReturn', np.std(undiscounted_returns))
+            tabular.record(log_prefix + 'MaxReturn', np.max(undiscounted_returns))
+            tabular.record(log_prefix + 'MinReturn', np.min(undiscounted_returns))
 
     def _compute_advantages(self, paths, all_path_baselines):
         assert len(paths) == len(all_path_baselines)

@@ -86,6 +86,13 @@ class SAC(OffPolicyRLAlgorithm):
     def train_once(self, itr, paths):
         return self.optimize_policy(itr, paths)
 
+    def _update_targets(self):
+        '''
+        TODO add target network update.
+        training is not working without this lol.
+        '''
+        pass
+
     def optimize_policy(self, itr, samples):
         transitions = np_to_torch(samples)
         observations = transitions['observation']
@@ -137,7 +144,6 @@ class SAC(OffPolicyRLAlgorithm):
 
         q_target = self._reward_scale * rewards + (1. - terminals) * self._discount * target_q_values
         q_target = q_target.detach()
-
         q_losses = [self._qf_criterion(q_pred, q_target) for q_pred in q_preds]
 
         '''Optimize q-functions'''
@@ -159,4 +165,5 @@ class SAC(OffPolicyRLAlgorithm):
             raise ValueError('The dimension of policy loss is not correct!')
         else:
             policy_loss = policy_loss_np[np.newaxis, ...][0]
+
         return policy_loss, mean_q_loss
