@@ -72,31 +72,24 @@ class OffPolicyRLAlgorithm(RLAlgorithm):
 
     def train(self, runner, batch_size):
         last_return = None
-
         for epoch in runner.step_epochs():
             policy_loss = None
             qf_loss = None
             for cycle in range(self.n_epoch_cycles):
                 runner.step_path = runner.obtain_samples(
                     runner.step_itr, batch_size)
-
                 processed_paths = self.processor.process_samples(runner.step_path)
                 for p in processed_paths:
-                    self.replay_buffer.add_transitions(
-                        observation=p['observations'],
-                        action=p['actions'],
-                        reward=p['rewards'] * self.reward_scale,
-                        terminal=p['dones'],
-                        next_observation=p['next_observations'],)
-
-                if self.replay_buffer.n_transitions_stored >= self.min_buffer_size:
-                    samples_data = self.replay_buffer.sample(self.buffer_batch_size)
+                    self.replay_buffer.add_path(p)
+                if self.replay_buffer._transitions_stored >= self.min_buffer_size:
+                    samples_data = self.replay_buffer.sample_transitions(self.buffer_batch_size)
                     policy_loss, qf_loss = self.train_once(runner.step_itr, samples_data)
                 runner.step_itr += 1
 
             if policy_loss is not None and qf_loss is not None:
                 tabular.record('QfunctionLoss', qf_loss)
                 tabular.record('PolicyLoss', policy_loss)
+            tabular.record('BufferSize', self.replay_buffer._transitions_stored)
 
         # This is currently disabled since last_return is not very useful
         return last_return

@@ -10,6 +10,12 @@ from meta_agents.algos.off_policy_rl_algorithm import OffPolicyRLAlgorithm
 from meta_agents.torch_utils import np_to_torch, torch_to_np
 
 
+def _soft_update(model, target_model, tau):
+    """Update parameters in the target policy and Q-value network."""
+    for t_param, param in zip(target_model.parameters(), model.parameters()):
+        t_param.data.copy_(t_param.data * (1.0 - tau) + param.data * tau)
+
+
 class SAC(OffPolicyRLAlgorithm):
     '''
     Soft Actor-Critic
@@ -25,7 +31,7 @@ class SAC(OffPolicyRLAlgorithm):
                  policy_optimizer_cls=torch.optim.Adam,
                  qf_lr=1e-3,
                  qf_optimizer_cls=torch.optim.Adam,
-                 soft_target_tau=1e-2,
+                 tau=1e-2,
                  target_update_period=1,
                  use_automatic_entropy_tuning=True,
                  target_entropy=None,
@@ -64,7 +70,7 @@ class SAC(OffPolicyRLAlgorithm):
             self._qf_optimizers.append(
                 qf_optimizer_cls(qf.parameters(), lr=qf_lr,))
 
-        self._soft_target_tau = soft_target_tau
+        self._tau = tau
         self._target_update_period = target_update_period
 
         # TODO: per-task alpha (task->alpha) for multi-task learning
@@ -84,33 +90,27 @@ class SAC(OffPolicyRLAlgorithm):
             self.log_alpha = log_alpha
 
     def train_once(self, itr, paths):
-        return self.optimize_policy(itr, paths)
+        return self._optimize_policy(itr, paths)
 
     def _update_targets(self):
-        '''
-        TODO add target network update.
-        training is not working without this lol.
-        '''
-        pass
+        # update q-functions
+        for qf, target_qf in zip(self._qfs, self._target_qfs):
+            _soft_update(qf, target_qf, self._tau)
+        # update policy
+        _soft_update(self.policy, self.target_policy, self._tau)
 
-    def optimize_policy(self, itr, samples):
+    def _optimize_policy(self, itr, samples):
         transitions = np_to_torch(samples)
-        observations = transitions['observation']
-        rewards = transitions['reward']
-        actions = transitions['action']
-        next_observations = transitions['next_observation']
-        terminals = transitions['terminal']
-
-        rewards = rewards.reshape(-1, 1)
-        terminals = terminals.reshape(-1, 1)
-
-        next_inputs = next_observations
-        inputs = observations
+        observations = transitions['observations']
+        rewards = transitions['rewards']
+        actions = transitions['actions']
+        next_observations = transitions['next_observations']
+        terminals = transitions['dones']
 
         # Policy loss
         policy_dist = self.policy(observations)
         new_actions = policy_dist.rsample()
-        log_pi = policy_dist.log_prob(new_actions)
+        log_pi = policy_dist.log_prob(new_actions).unsqueeze(-1)
 
         # get alpha:
         if self._use_automatic_entropy_tuning:
@@ -133,13 +133,13 @@ class SAC(OffPolicyRLAlgorithm):
         # Q-functions loss
         q_preds = [qf(observations, actions) for qf in self._qfs]
         # We need a new set of symbolics!
-        new_policy_dist = self.policy(next_observations)
-        new_next_actions = policy_dist.rsample()
-        next_log_pi = policy_dist.log_prob(new_next_actions).unsqueeze(-1)
+        next_policy_dist = self.policy(next_observations)
+        next_actions = next_policy_dist.rsample()
+        next_log_pi = next_policy_dist.log_prob(next_actions).unsqueeze(-1)
 
         target_q_values = torch.min(
-            self._target_qfs[0](observations, new_next_actions),
-            self._target_qfs[1](observations, new_next_actions),
+            self._target_qfs[0](next_observations, next_actions),
+            self._target_qfs[1](next_observations, next_actions),
         ) - alpha * next_log_pi
 
         q_target = self._reward_scale * rewards + (1. - terminals) * self._discount * target_q_values

@@ -1,3 +1,5 @@
+import numpy as np
+
 from  meta_agents.samplers.base import SampleProcessor
 from meta_agents.utils.utils import discount_cumsum, stack_tensor_dict_list
 
@@ -30,8 +32,8 @@ class OffPolicySampleProcessor(SampleProcessor):
                 next_observations=p['observations'][1:, ...],
                 observations=p['observations'][:-1, ...],
                 actions=p['actions'][:-1, ...],
-                rewards=p['rewards'][:-1, ...],
-                dones=p['dones'][:-1, ...],)
+                rewards=p['rewards'][:-1, np.newaxis],
+                dones=p['dones'][:-1, np.newaxis],)
             all_samples_data.append(samples_data)
 
         assert len(all_samples_data) == len(paths)
