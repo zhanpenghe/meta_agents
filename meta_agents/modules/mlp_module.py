@@ -79,15 +79,22 @@ class MLPModule(nn.Module):
 
     def forward(self, input_val, params=None):
         """Forward method."""
+        if params is not None: 
+            # This assume that the fed params are layers
+            # it should be verified during integration.
+            layers = params['layers']
+        else:
+            layers = self._layers
+
         x = input_val
-        for layer in self._layers[:-1]:
+        for layer in layers[:-1]:
             x = layer(x)
             if self._hidden_nonlinearity is not None:
                 x = self._hidden_nonlinearity(x)
             if self._layer_normalization:
                 x = nn.LayerNorm(x.shape[1])(x)
 
-        x = self._layers[-1](x)
+        x = layers[-1](x)
         if self._output_nonlinearity is not None:
             x = self._output_nonlinearity(x)
 

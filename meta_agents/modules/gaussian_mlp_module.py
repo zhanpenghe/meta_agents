@@ -201,12 +201,17 @@ class GaussianMLPModule(GaussianMLPBaseModule):
             output_b_init=self._output_b_init,
             layer_normalization=self._layer_normalization)
 
-    def _get_mean_and_log_std(self, inputs):
-        mean = self._mean_module(inputs)
+    def _get_mean_and_log_std(self, inputs, params=None):
+        mean = self._mean_module(inputs, params)
+
+        if params is not None:
+            log_std = params['log_std']
+        else:
+            log_std = self._init_std  # this naming is confusing..
 
         broadcast_shape = list(inputs.shape[:-1]) + [self._action_dim]
         uncentered_log_std = torch.zeros(
-            *broadcast_shape) + self._init_std_param
+            *broadcast_shape) + log_std
 
         return mean, uncentered_log_std
 
@@ -286,8 +291,14 @@ class GaussianMLPIndependentStdModule(GaussianMLPBaseModule):
     def _init_adaptive_b(self, b):
         return nn.init.constant_(b, self._init_std_param.item())
 
-    def _get_mean_and_log_std(self, inputs):
-        return self._mean_module(inputs), self._log_std_module(inputs)
+    def _get_mean_and_log_std(self, inputs, params=None):
+        if params is not None:
+            means = self._mean_module(inputs, params=dict(layers=params['mean_layers']))
+            log_stds = self._log_std_module(inputs, params=dict(layers=params['std_layers']))
+        else:
+            means = self._mean_module(inputs)
+            log_stds = self._log_std_module(inputs)
+        return means, log_stds
 
 
 class GaussianMLPTwoHeadedModule(GaussianMLPBaseModule):
@@ -342,5 +353,5 @@ class GaussianMLPTwoHeadedModule(GaussianMLPBaseModule):
             ],
             layer_normalization=self._layer_normalization)
 
-    def _get_mean_and_log_std(self, inputs):
-        return self._shared_mean_log_std_network(inputs)
+    def _get_mean_and_log_std(self, inputs, params=None):
+        return self._shared_mean_log_std_network(inputs, params=params)

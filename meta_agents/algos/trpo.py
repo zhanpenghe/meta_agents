@@ -111,5 +111,5 @@ class TRPO(BatchPolopt):
             return flat_grad2_kl + damping * vector
         return _product
 
-    def kl_divergence(self, samples_data, old_dist):
-        pass
+    def kl_divergence(self, samples_data, old_dists):
+        

@@ -115,8 +115,15 @@ class MultiHeadedMLPModule(nn.Module):
 
     def forward(self, input_val, params=None):
         """Forward method."""
+        if params is not None:
+            layers = params['layers']
+            output_layers = params['output_layers']
+        else:
+            layers = self._layers
+            output_layers = self._output_layers
+
         x = input_val
-        for layer in self._layers:
+        for layer in layers:
             x = layer(x)
 
-        return [layer(x) for layer in self._output_layers]
+        return [layer(x) for layer in output_layers]
