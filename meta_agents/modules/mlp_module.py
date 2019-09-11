@@ -77,7 +77,7 @@ class MLPModule(nn.Module):
         output_b_init(layer.bias)
         self._layers.append(layer)
 
-    def forward(self, input_val):
+    def forward(self, input_val, params=None):
         """Forward method."""
         x = input_val
         for layer in self._layers[:-1]:

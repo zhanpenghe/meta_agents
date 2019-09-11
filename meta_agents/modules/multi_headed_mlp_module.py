@@ -113,7 +113,7 @@ class MultiHeadedMLPModule(nn.Module):
 
         return var
 
-    def forward(self, input_val):
+    def forward(self, input_val, params=None):
         """Forward method."""
         x = input_val
         for layer in self._layers:

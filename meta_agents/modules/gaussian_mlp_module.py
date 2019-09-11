@@ -130,7 +130,7 @@ class GaussianMLPBaseModule(nn.Module, abc.ABC):
     def _get_mean_and_log_std(self, inputs):
         pass
 
-    def forward(self, inputs):
+    def forward(self, inputs, params=None):
         """Forward method."""
         mean, log_std_uncentered = self._get_mean_and_log_std(inputs)
 
