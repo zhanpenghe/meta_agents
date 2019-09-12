@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from dowel import logger, dowel
+from dowel import logger, tabular
 from garage.np.algos import BatchPolopt
 import torch
 from torch.distributions.kl import kl_divergence
@@ -104,7 +104,7 @@ class TRPO(BatchPolopt):
         # since we have preprocessor in meta_agents
         raise NotImplementedError
 
-    def _trpo_step(self, samples, loss_func, constraint,
+    def _trpo_step(self, samples, loss_func, constraint, cg_damping=1e-2,
         ls_backtrack_ratio=.5, cg_iters=10, max_ls_steps=10, max_kl=1e-3,):
         # Here, we do have detached old_dist so we dont need to do this
         # in the future.
@@ -112,7 +112,7 @@ class TRPO(BatchPolopt):
         grads = torch.autograd.grad(old_loss, self.policy.parameters())
         grads = parameters_to_vector(grads)
 
-        hessian_vector_product = self.hessian_vector_product(samples)  # TODO make damping available
+        hessian_vector_product = self.hessian_vector_product(samples, damping=cg_damping)
         step_direction = conjugate_gradient(hessian_vector_product, grads, cg_iters)
 
         # Compute the Lagrange multiplier
@@ -125,7 +125,8 @@ class TRPO(BatchPolopt):
 
         # Start line search
         step_size = 1.
-        for ls_step in range(max_ls_steps):
+        backtrack_step = 0
+        for _ in range(max_ls_steps):
             vector_to_parameters(old_params - step_size * step,
                                  self.policy.parameters())
             loss, _ = surrogate_loss(samples, self.policy)
@@ -134,8 +135,11 @@ class TRPO(BatchPolopt):
             if (improve.item() < 0.0) and (kl.item() < max_kl):
                 break
             step_size *= ls_backtrack_ratio
+            backtrack_step += 1
         else:
             vector_to_parameters(old_params, self.policy.parameters())
+            logger.log('Failed to update parameters')
+        tabular.record('backtrack-iters', backtrack_step)
 
     def hessian_vector_product(self, samples_data, damping=1e-2):
         """Hessian-vector product, based on the Perlmutter method."""
