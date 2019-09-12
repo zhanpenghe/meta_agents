@@ -15,6 +15,9 @@ def np_to_torch(array_dict):
 
     """
     for key, value in array_dict.items():
+        # TODO make this recursive and remove this if-statement!
+        if isinstance(value, dict):
+            continue
         array_dict[key] = torch.FloatTensor(value)
     return array_dict
 
@@ -43,7 +46,7 @@ def detach_distribution(pi):
         distribution = Normal(loc=pi.loc.detach(), scale=pi.scale.detach())
     elif isinstance(pi, MultivariateNormal):
         distribution = MultivariateNormal(
-            loc=pi.loc.detach, covariance_matrix=pi.covariance_matrix.detach())
+            loc=pi.loc.detach(), covariance_matrix=pi.covariance_matrix.detach())
     else:
         raise NotImplementedError('Only `Categorical` and `Normal` '
                                   'policies are valid policies.')

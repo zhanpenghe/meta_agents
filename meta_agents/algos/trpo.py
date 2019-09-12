@@ -1,9 +1,11 @@
 
 from garage.np.algos import BatchPolopt
+import torch
 from torch.distributions.kl import kl_divergence
 
 from meta_agents.samplers.single_task_sampler import SingleTaskSampler
 from meta_agents.torch_utils import np_to_torch, detach_distribution
+from meta_agents.samplers.base import SampleProcessor
 
 
 def surrogate_loss(samples, policy):
@@ -26,7 +28,7 @@ def surrogate_loss(samples, policy):
 
     log_likeli_ratio = dist.log_prob(actions) - old_dist.log_prob(actions)
     ratio = torch.exp(log_likeli_ratio)
-    surr_loss = - torch.mean(ration * advantages, dim=0)
+    surr_loss = - torch.mean(ratio * advantages, dim=0)
     return surr_loss, old_dist
 
 
@@ -73,11 +75,24 @@ class TRPO(BatchPolopt):
         # We only use our own sampler for consistency between single task
         # and meta learning.
         self.sampler_cls = SingleTaskSampler
+        self.preprocessor = SampleProcessor(baseline=self.baseline)
 
-    def train_once(self, samples_data):
+    def train(self, runner, batch_size):
+        last_return = None
+
+        for epoch in runner.step_epochs():
+            for cycle in range(self.n_samples):
+                runner.step_path = runner.obtain_samples(
+                    runner.step_itr, batch_size)
+                last_return = self.train_once(runner.step_itr,
+                                              runner.step_path)
+                runner.step_itr += 1
+
+        return last_return
+
+    def train_once(self, itr, paths):
+        samples_data = self.preprocessor.process_samples(paths)
         samples = np_to_torch(samples_data)
-        # loss, dist, old_dist = surrogate_loss(samples, self.policy)
-        # kl_before = kl_divergence(dist, old_dist)
         self._trpo_step(samples, surrogate_loss, kl_divergence)
 
     def process_samples(self, itr, paths):
@@ -89,6 +104,8 @@ class TRPO(BatchPolopt):
         ls_backtrack_ration=.5, cg_iters=10, max_ls_steps=10):
         # Here, we do have detached old_dist so we dont need to do this
         # in the future.
+        import ipdb;
+        ipdb.set_trace()
         loss, old_dist = surrogate_loss(samples, self.policy)
         grads = torch.autograd.grad(loss, self.policy.parameters())
         grads = parameters_to_vector(grads)
