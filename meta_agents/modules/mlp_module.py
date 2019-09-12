@@ -4,6 +4,7 @@ MLP Module.
 A Pytorch module composed only of a multi-layer perceptron (MLP), which maps
 real-valued inputs to real-valued outputs.
 """
+from collections import OrderedDict
 
 from torch import nn as nn
 from torch.nn import functional as F  # NOQA
@@ -79,22 +80,22 @@ class MLPModule(nn.Module):
 
     def forward(self, input_val, params=None):
         """Forward method."""
-        if params is not None: 
-            # This assume that the fed params are layers
-            # it should be verified during integration.
-            layers = params['layers']
-        else:
-            layers = self._layers
+        if params is None:
+            params = OrderedDict(self.named_parameters())
 
         x = input_val
-        for layer in layers[:-1]:
-            x = layer(x)
+        for i in range(0, len(self._layers) - 1):
+            x =  F.linear(
+                x,
+                weight=params['_layers.{0}.weight'.format(i)],
+                bias=params['_layers.{0}.bias'.format(i)])
             if self._hidden_nonlinearity is not None:
                 x = self._hidden_nonlinearity(x)
             if self._layer_normalization:
                 x = nn.LayerNorm(x.shape[1])(x)
 
-        x = layers[-1](x)
+        x =  F.linear(x, weight=params['_layers.{0}.weight'.format(i + 1)],
+                bias=params['_layers.{0}.bias'.format(i + 1)])
         if self._output_nonlinearity is not None:
             x = self._output_nonlinearity(x)
 
