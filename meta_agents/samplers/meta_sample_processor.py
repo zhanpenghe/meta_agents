@@ -7,7 +7,7 @@ from meta_agents.utils import utils
 
 class MetaSampleProcessor(SampleProcessor):
 
-    def process_samples(self, paths_meta_batch, log=False, log_prefix=''):
+    def process_samples(self, paths_meta_batch, log=True, log_prefix=''):
         """
         Processes sampled paths. This involves:
             - computing discounted rewards (returns)

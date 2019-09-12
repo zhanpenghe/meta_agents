@@ -12,7 +12,7 @@ from meta_agents.torch_utils import np_to_torch, detach_distribution
 from meta_agents.samplers.base import SampleProcessor
 
 
-def surrogate_loss(samples, policy):
+def surrogate_loss(samples, policy, old_dist=None):
     assert isinstance(samples, dict)
     assert 'observations' in samples.keys()
     assert 'actions' in samples.keys()
@@ -25,15 +25,15 @@ def surrogate_loss(samples, policy):
     dist = policy(observations)
     # currently lets just detach the logprob
     # as old pi
-    if 'old_dist_info' not in samples.keys():
+    if old_dist is None:
         old_dist = detach_distribution(dist)
-    else:
-        old_dist = dist.__class__()(**samples['old_dist_info'])
+    
+    kl = torch.mean(kl_divergence(dist, old_dist))
 
     log_likeli_ratio = dist.log_prob(actions) - old_dist.log_prob(actions)
     ratio = torch.exp(log_likeli_ratio)
-    surr_loss = - torch.mean(ratio * advantages, dim=0)
-    return surr_loss, old_dist
+    surr_loss = -torch.mean(ratio * advantages, dim=0)
+    return surr_loss, old_dist, kl
 
 
 def conjugate_gradient(f_Ax, b, cg_iters=10, residual_tol=1e-10):
@@ -105,10 +105,9 @@ class TRPO(BatchPolopt):
         raise NotImplementedError
 
     def _trpo_step(self, samples, loss_func, constraint, cg_damping=1e-2,
-        ls_backtrack_ratio=.5, cg_iters=10, max_ls_steps=10, max_kl=1e-3,):
-        # Here, we do have detached old_dist so we dont need to do this
-        # in the future.
-        old_loss, old_dist = surrogate_loss(samples, self.policy)
+        ls_backtrack_ratio=.5, cg_iters=10, max_ls_steps=10, max_kl=1e-2,):
+
+        old_loss, old_dist, kl_before = surrogate_loss(samples, self.policy)
         grads = torch.autograd.grad(old_loss, self.policy.parameters())
         grads = parameters_to_vector(grads)
 
@@ -116,21 +115,21 @@ class TRPO(BatchPolopt):
         step_direction = conjugate_gradient(hessian_vector_product, grads, cg_iters)
 
         # Compute the Lagrange multiplier
-        shs = 0.5 * torch.dot(step_direction, hessian_vector_product(step_direction))
-        lagrange_multiplier = torch.sqrt(shs / max_kl)
+        shs = 0.5 * step_direction.dot(hessian_vector_product(step_direction))
+        lagrange_multiplier = torch.sqrt(max_kl / shs)
 
-        step = step_direction / lagrange_multiplier
-
+        grad_step = step_direction * lagrange_multiplier
         old_params = parameters_to_vector(self.policy.parameters())
 
         # Start line search
         step_size = 1.
         backtrack_step = 0
         for _ in range(max_ls_steps):
-            vector_to_parameters(old_params - step_size * step,
+            vector_to_parameters(old_params - step_size * grad_step,
                                  self.policy.parameters())
-            loss, _ = surrogate_loss(samples, self.policy)
-            kl = self.kl_divergence(samples, old_dists=old_dist)
+
+            loss, _, kl = surrogate_loss(samples, self.policy, old_dist=old_dist)
+
             improve = loss - old_loss
             if (improve.item() < 0.0) and (kl.item() < max_kl):
                 break
@@ -140,6 +139,10 @@ class TRPO(BatchPolopt):
             vector_to_parameters(old_params, self.policy.parameters())
             logger.log('Failed to update parameters')
         tabular.record('backtrack-iters', backtrack_step)
+        tabular.record('loss-before', old_loss.item())
+        tabular.record('loss-after', loss.item())
+        tabular.record('kl-before', kl_before.item())
+        tabular.record('kl-after', kl.item())
 
     def hessian_vector_product(self, samples_data, damping=1e-2):
         """Hessian-vector product, based on the Perlmutter method."""
@@ -157,13 +160,14 @@ class TRPO(BatchPolopt):
 
         return _product
 
-    def kl_divergence(self, samples, old_dists=None):
-        loss, old_dist = surrogate_loss(samples, self.policy)
-        updated_params = self.adapt_policy(loss)
+    def kl_divergence(self, samples, old_dist=None):
+        loss, old_dist_, kl = surrogate_loss(samples, self.policy)
+        if old_dist is None:
+            old_dist = old_dist_
 
         inputs = samples['observations']
-        new_dist = self.policy(inputs, params=updated_params)
-        kl = torch.mean(kl_divergence(new_dist, old_dist), dim=0)
+        new_dist = self.policy(inputs)
+        kl = torch.mean(kl_divergence(new_dist, old_dist))
         return kl
 
     def adapt_policy(self, loss, step_size=1., create_graph=True):

@@ -46,7 +46,7 @@ class GaussianMLPPolicy(GaussianMLPModule, Policy):
         # numpy to torch
         observations = torch.Tensor(observations)
         with torch.no_grad():
-            dist = self.forward(observations)
+            dist = self.forward(observations, params=params)
             actions = dist.rsample().detach().numpy()
 
         infos = dict()
@@ -60,5 +60,5 @@ class GaussianMLPPolicy(GaussianMLPModule, Policy):
 
     def get_action(self, observation, params=None):
         with torch.no_grad():
-            x = self.forward(observation)
+            x = self.forward(observation, params=params)
             return x.numpy(), dict()
