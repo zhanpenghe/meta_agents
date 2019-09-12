@@ -1,7 +1,11 @@
+from collections import OrderedDict
 
+from dowel import logger, dowel
 from garage.np.algos import BatchPolopt
 import torch
 from torch.distributions.kl import kl_divergence
+from torch.nn.utils.convert_parameters import (vector_to_parameters,
+                                               parameters_to_vector)
 
 from meta_agents.samplers.single_task_sampler import SingleTaskSampler
 from meta_agents.torch_utils import np_to_torch, detach_distribution
@@ -101,16 +105,14 @@ class TRPO(BatchPolopt):
         raise NotImplementedError
 
     def _trpo_step(self, samples, loss_func, constraint,
-        ls_backtrack_ration=.5, cg_iters=10, max_ls_steps=10):
+        ls_backtrack_ratio=.5, cg_iters=10, max_ls_steps=10, max_kl=1e-3,):
         # Here, we do have detached old_dist so we dont need to do this
         # in the future.
-        import ipdb;
-        ipdb.set_trace()
-        loss, old_dist = surrogate_loss(samples, self.policy)
-        grads = torch.autograd.grad(loss, self.policy.parameters())
+        old_loss, old_dist = surrogate_loss(samples, self.policy)
+        grads = torch.autograd.grad(old_loss, self.policy.parameters())
         grads = parameters_to_vector(grads)
 
-        hessian_vector_product = self.hessian_vector_product(samples_data)  # TODO make damping available
+        hessian_vector_product = self.hessian_vector_product(samples)  # TODO make damping available
         step_direction = conjugate_gradient(hessian_vector_product, grads, cg_iters)
 
         # Compute the Lagrange multiplier
@@ -123,19 +125,19 @@ class TRPO(BatchPolopt):
 
         # Start line search
         step_size = 1.
-        for _ in range(max_ls_steps):
+        for ls_step in range(max_ls_steps):
             vector_to_parameters(old_params - step_size * step,
                                  self.policy.parameters())
-            loss, _ = self.surrogate_loss(samples_data, self.policy)
-            kl = self.kl_divergence(samples_data, old_dists=old_dist)
+            loss, _ = surrogate_loss(samples, self.policy)
+            kl = self.kl_divergence(samples, old_dists=old_dist)
             improve = loss - old_loss
             if (improve.item() < 0.0) and (kl.item() < max_kl):
                 break
             step_size *= ls_backtrack_ratio
         else:
-            vector_to_parameters(old_params, self.policy.paramters())
+            vector_to_parameters(old_params, self.policy.parameters())
 
-    def hessian_vector_product(samples_data, damping=1e-2):
+    def hessian_vector_product(self, samples_data, damping=1e-2):
         """Hessian-vector product, based on the Perlmutter method."""
 
         def _product(vector):
@@ -147,18 +149,17 @@ class TRPO(BatchPolopt):
             grad_kl_v = torch.dot(flat_grad_kl, vector)
             grad2s = torch.autograd.grad(grad_kl_v, self.policy.parameters())
             flat_grad2_kl = parameters_to_vector(grad2s)
-
             return flat_grad2_kl + damping * vector
+
         return _product
 
-    def kl_divergence(self, samples_data, old_dists=None):
+    def kl_divergence(self, samples, old_dists=None):
         loss, old_dist = surrogate_loss(samples, self.policy)
         updated_params = self.adapt_policy(loss)
 
-        inputs = samples_data['observations']
-        new_dist = self.policy(inputs, param=updated_params)
+        inputs = samples['observations']
+        new_dist = self.policy(inputs, params=updated_params)
         kl = torch.mean(kl_divergence(new_dist, old_dist), dim=0)
-
         return kl
 
     def adapt_policy(self, loss, step_size=1., create_graph=True):
