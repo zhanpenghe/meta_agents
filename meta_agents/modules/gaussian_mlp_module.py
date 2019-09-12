@@ -1,5 +1,6 @@
 """GaussianMLPModule."""
 import abc
+from collections import OrderedDict
 
 import torch
 from torch import nn
@@ -130,9 +131,9 @@ class GaussianMLPBaseModule(nn.Module, abc.ABC):
     def _get_mean_and_log_std(self, inputs):
         pass
 
-    def forward(self, inputs):
+    def forward(self, inputs, params=None):
         """Forward method."""
-        mean, log_std_uncentered = self._get_mean_and_log_std(inputs)
+        mean, log_std_uncentered = self._get_mean_and_log_std(inputs, params=params)
 
         if self._min_std_param or self._max_std_param:
             log_std_uncentered = log_std_uncentered.clamp(
@@ -145,8 +146,13 @@ class GaussianMLPBaseModule(nn.Module, abc.ABC):
             std = log_std_uncentered.exp().exp().add(1.).log()
 
         cov = (std**2).diag_embed()
-        dist = MultivariateNormal(mean, cov)
 
+        try:
+            dist = MultivariateNormal(mean, cov)
+        except Exception as e:
+            import ipdb
+            ipdb.set_trace()
+            print('debug')
         return dist
 
     def _to_scalar_if_not_none(self, tensor):
@@ -201,12 +207,21 @@ class GaussianMLPModule(GaussianMLPBaseModule):
             output_b_init=self._output_b_init,
             layer_normalization=self._layer_normalization)
 
-    def _get_mean_and_log_std(self, inputs):
-        mean = self._mean_module(inputs)
-
+    def _get_mean_and_log_std(self, inputs, params=None):
+        if params is not None:
+            offset = len('_mean_module') + 1
+            mean_params = {
+                name[offset:]: param
+                for name, param in params.items() if '_mean_module' in name
+            }
+        else:
+            mean_params = None
+            std_params = None
+        mean = self._mean_module(inputs, mean_params)
+        log_std = self._init_std  # this naming is confusing..
         broadcast_shape = list(inputs.shape[:-1]) + [self._action_dim]
         uncentered_log_std = torch.zeros(
-            *broadcast_shape) + self._init_std_param
+            *broadcast_shape) + log_std
 
         return mean, uncentered_log_std
 
@@ -286,8 +301,14 @@ class GaussianMLPIndependentStdModule(GaussianMLPBaseModule):
     def _init_adaptive_b(self, b):
         return nn.init.constant_(b, self._init_std_param.item())
 
-    def _get_mean_and_log_std(self, inputs):
-        return self._mean_module(inputs), self._log_std_module(inputs)
+    def _get_mean_and_log_std(self, inputs, params=None):
+        if params is not None:
+            means = self._mean_module(inputs, params=dict(layers=params['mean_layers']))
+            log_stds = self._log_std_module(inputs, params=dict(layers=params['std_layers']))
+        else:
+            means = self._mean_module(inputs)
+            log_stds = self._log_std_module(inputs)
+        return means, log_stds
 
 
 class GaussianMLPTwoHeadedModule(GaussianMLPBaseModule):
@@ -342,5 +363,5 @@ class GaussianMLPTwoHeadedModule(GaussianMLPBaseModule):
             ],
             layer_normalization=self._layer_normalization)
 
-    def _get_mean_and_log_std(self, inputs):
-        return self._shared_mean_log_std_network(inputs)
+    def _get_mean_and_log_std(self, inputs, params=None):
+        return self._shared_mean_log_std_network(inputs, params=params)

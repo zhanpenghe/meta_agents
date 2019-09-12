@@ -32,7 +32,7 @@ class GaussianMLPPolicy(GaussianMLPModule, Policy):
             *args,
             **kwargs)
 
-    def get_actions(self, observations):
+    def get_actions(self, observations, params=None):
         """Get actions given observations."""
         meta = False
         # This method now handles both the meta case
@@ -46,7 +46,7 @@ class GaussianMLPPolicy(GaussianMLPModule, Policy):
         # numpy to torch
         observations = torch.Tensor(observations)
         with torch.no_grad():
-            dist = self.forward(observations)
+            dist = self.forward(observations, params=params)
             actions = dist.rsample().detach().numpy()
 
         infos = dict()
@@ -58,7 +58,7 @@ class GaussianMLPPolicy(GaussianMLPModule, Policy):
             ]
         return actions, infos
 
-    def get_action(self, observation):
+    def get_action(self, observation, params=None):
         with torch.no_grad():
-            x = self.forward(observation)
+            x = self.forward(observation, params=params)
             return x.numpy(), dict()

@@ -60,7 +60,7 @@ class MetaSampler(Sampler):
         assert len(tasks) == self.meta_batch_size
         self.vec_env.set_tasks(tasks)
 
-    def obtain_samples(self, itr, log=False, log_prefix='', show_pbar=True):
+    def obtain_samples(self, itr, log=True, log_prefix='', show_pbar=True):
         """
         Collect batch_size trajectories from each task
 

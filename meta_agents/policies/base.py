@@ -34,3 +34,7 @@ class Policy(abc.ABC):
     def action_space(self):
         """Policy action space."""
         return self._env_spec.action_space
+
+    @property
+    def vectorized(self):
+        return True

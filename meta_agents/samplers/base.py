@@ -74,7 +74,7 @@ class SampleProcessor:
         self.normalize_adv = normalize_adv
         self.positive_adv = positive_adv
 
-    def process_samples(self, paths, log=False, log_prefix=''):
+    def process_samples(self, paths, log=True, log_prefix=''):
         """
         Processes sampled paths. This involves:
             - computing discounted rewards (returns)
